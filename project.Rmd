@@ -1,0 +1,110 @@
+---
+title: "Determinants of Foreign Aid from the United States"
+author: "Kenneth Catlin & Peyton Keleher"
+date: "2023-03-29"
+output: html_document
+---
+
+```{r Loading data, libraries, cleaning data, echo=FALSE}
+#Load libraries & Import Data
+library("httr")
+library("jsonlite")
+library("dplyr")
+library()
+
+#set constraints to zero
+
+res <- GET("https://data.usaid.gov/resource/azij-hu6e.json") #API for data
+rawToChar(res$content)
+data <- fromJSON(rawToChar(res$content)) #convert data to usable content
+View(data)
+
+datacsv<- read.csv("C:/Users/Kenne/Documents/STAT 461/Group Project/us_foreign_aid_complete.csv")
+politydata<-read.csv("C:/Users/Kenne/Documents/STAT 461/Group Project/polity.csv")
+
+datafull<-merge(datacsv,politydata,by=c("Country.Code","Fiscal.Year"), all = FALSE)
+
+#data2002<-subset(datafull, Fiscal.Year >= 2002)
+#data2002<-subset(data2002, polity >= -10)
+#data2002<-subset(data2002, Foreign.Assistance.Objective.Name == "Military")
+
+#cleandata2002 <- data2002 %>% select("Country.Code","Country.Name","Fiscal.Year",
+#                             "polity",
+#"Current.Dollar.Amount")
+
+## clean data ----
+
+datafull
+
+cleandata<-datafull %>% 
+  select(Country.Code, Country.Name, Fiscal.Year,polity,Foreign.Assistance.Objective.Name,Current.Dollar.Amount,polity) %>%
+  mutate(Fiscal.Year=as.numeric(Fiscal.Year)) %>%
+  filter(between(Fiscal.Year, 2002, 2020),Foreign.Assistance.Objective.Name == "Military") %>%
+  group_by(Country.Name,Fiscal.Year) %>%
+  summarize(totalmoneygiven = sum(Current.Dollar.Amount),polity = mean(polity, na.rm = TRUE))
+  
+
+
+View(cleandata2002)
+unique(cleandata2002$Country.Name)
+
+countries <- unique(datacsv$Country.Name) #produce a vector of unique contry names
+unique(datacsv$Country.Code)
+unique(datacsv$Country.Name)
+#Select sample size. 
+#to produce a balanced design, create a "regime type) variable denoting each country
+#as either dem or non-dem (1,0), based of Polity2 score. (dem => 7)
+#Then, divide the sample size by two, and select that many countries from each category
+#using the "seed" function.
+
+set.seed(12)
+countriessample<-sample(cleandata2002$Country.Name,34)
+View(countriessample)
+#merge Polity, formal aliances, and Wealth into this data set as well (will need done before step above)
+```
+
+###Introduction
+
+###Literature Review
+
+###Assessing the data
+
+```{r Summary data, distributions, assumptions, echo=FALSE}
+
+plot(cleandata2002$Fiscal.Year, cleandata2002$Current.Dollar.Amount, type = "b", frame = FALSE, pch = 19, 
+     col = "red", xlab = "x", ylab = "y")
+#produce summary statistics for DV
+
+#produce a histogram of the DV (data$current_amount)
+
+###assess ANOVA assumpetions
+#Gaussian distribution via QQ plot
+
+#Homoscedacity via strip plot
+
+#Independence via D-W statistic
+
+```
+
+###METHODOLY
+
+```{r, echo=FALSE}
+##Hasse Diagram
+
+#conduct ANOVA test(s)
+
+``` 
+
+###POST HOC ANALYSIS
+
+```{r, echo=FALSE}
+
+```
+
+###RESULTS
+
+###CONCLUSION
+
+###REFERENCES 
+
+###APENDIX
