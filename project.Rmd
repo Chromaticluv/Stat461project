@@ -5,36 +5,25 @@ date: "2023-03-29"
 output: html_document
 ---
 
-```{r Loading data, libraries, cleaning data, echo=FALSE}
+```{r Loading data - libraries - cleaning data, echo=FALSE}
 #Load libraries & Import Data
 library("httr")
 library("jsonlite")
 library("dplyr")
-library()
 
 #set constraints to zero
 
-res <- GET("https://data.usaid.gov/resource/azij-hu6e.json") #API for data
-rawToChar(res$content)
-data <- fromJSON(rawToChar(res$content)) #convert data to usable content
-View(data)
+forass<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/foreignassistance.csv") #Foreign Assistence data set
+politydata<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/polity.csv") #POLITY V DATA SET
+worldbank<-read.csv("")
 
-datacsv<- read.csv("C:/Users/Kenne/Documents/STAT 461/Group Project/us_foreign_aid_complete.csv")
-politydata<-read.csv("C:/Users/Kenne/Documents/STAT 461/Group Project/polity.csv")
+#rename column names to match country.code and fiscal.year.
+colnames(data)[colnames(data) == c("fiscal_year","country_code")] = c("Fiscal.Year","Country.Code")
+datafull<-merge(data,politydata,by=c("Country.Code","Fiscal.Year"), all = FALSE) #merge data sets
 
-datafull<-merge(datacsv,politydata,by=c("Country.Code","Fiscal.Year"), all = FALSE)
-
-#data2002<-subset(datafull, Fiscal.Year >= 2002)
-#data2002<-subset(data2002, polity >= -10)
-#data2002<-subset(data2002, Foreign.Assistance.Objective.Name == "Military")
-
-#cleandata2002 <- data2002 %>% select("Country.Code","Country.Name","Fiscal.Year",
-#                             "polity",
-#"Current.Dollar.Amount")
 
 ## clean data ----
 
-datafull
 
 cleandata<-datafull %>% 
   select(Country.Code, Country.Name, Fiscal.Year,polity,Foreign.Assistance.Objective.Name,Current.Dollar.Amount,polity) %>%
@@ -42,10 +31,10 @@ cleandata<-datafull %>%
   filter(between(Fiscal.Year, 2002, 2020),Foreign.Assistance.Objective.Name == "Military") %>%
   group_by(Country.Name,Fiscal.Year) %>%
   summarize(totalmoneygiven = sum(Current.Dollar.Amount),polity = mean(polity, na.rm = TRUE))
-  
 
 
-View(cleandata2002)
+
+
 unique(cleandata2002$Country.Name)
 
 countries <- unique(datacsv$Country.Name) #produce a vector of unique contry names
