@@ -2,7 +2,7 @@ setwd('D:/school/STAT 461/Final Project')
 library(dplyr)
 library(tidyr)
 
-#CLEANING FOREIGN ASSISTANCE DATA
+#CLEANING FOREIGN ASSISTANCE DATA ----
 data<-read.csv("D:/school/STAT 461/Final Project/ForeignAssistanceComplete.csv")
 cleandata<-data %>% 
   select(Country.Code, Country.Name, Fiscal.Year,Foreign.Assistance.Objective.Name, #filter to relevant columns
@@ -17,7 +17,7 @@ n_distinct(cleandata$Country.Name)
 
 write.csv(cleandata,"D:/school/STAT 461/Final Project/foreignassistance.csv")
 
-#CLEANING WORLD BANK DATA
+#CLEANING WORLD BANK DATA ----
 
 worldbankraw<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/WorldBankData.csv")
 worldbankclean<-worldbankraw %>%
@@ -45,3 +45,8 @@ worldbankfinal$Year[worldbankfinal$Year =="X2015..YR2015."] <- 2015
 
 
 write.csv(worldbankfinal, "D:/School/STAT 461/Final Project/worldbankfinal.csv")
+
+
+#CLEANING POLITY ----
+
+#CLEANING ALLIANCE ----
