@@ -1,7 +1,9 @@
 # Stat461project
 
 Kenneth Catlin & Peyton Keleher
+
 For Stat 461 SP2023 | Dr. Neil Hatfeild
+
 The Pennsylvania State University
 
 OVERVIEW:
