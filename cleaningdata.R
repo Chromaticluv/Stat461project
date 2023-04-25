@@ -49,4 +49,15 @@ write.csv(worldbankfinal, "D:/School/STAT 461/Final Project/worldbankfinal.csv")
 
 #CLEANING POLITY ----
 
+polity<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/polity.csv")
+polity<-polity %>% 
+  rename(byear = Fiscal.Year) %>%
+  select(Country.Code,country,polity,byear,eyear) %>% #select only relevant rows
+  filter(between(eyear,2000,9999)) #select only rows between end-year 2000 and present.
+
+polity$eyear[polity$eyear == 9999] <- 2020 #turn "present" values to 2020
+polity$polity[polity$polity < -10] <- NA #turn transition years into NA
+
+
+
 #CLEANING ALLIANCE ----
