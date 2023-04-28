@@ -1,4 +1,10 @@
 ---
+title: "Project"
+author: "Kenneth Catlin & Peyton Keleher"
+date: "2023-04-27"
+output: html_document
+---
+---
 title: "Determinants of Foreign Aid from the United States"
 author: "Kenneth Catlin & Peyton Keleher"
 date: "2023-03-29"
@@ -9,6 +15,7 @@ output: html_document
 #Load libraries & Import Data
 library("dplyr")
 library("tidyr")
+rm(list = ls())
 #set constraints to zero
 
 forass<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/foreignassistance.csv") #Foreign Assistence data set
@@ -21,7 +28,6 @@ worldbankraw<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461pr
 ##Cleaning polity data:
 politydata<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/polity.csv")
 politydata<-politydata %>% 
-  rename(byear = Fiscal.Year) %>%
   select(Country.Code,country,polity,byear,eyear) %>% #select only relevant rows
   filter(between(eyear,2000,9999)) #select only rows between end-year 2000 and present.
 
@@ -68,58 +74,29 @@ merged1<-merge(x=forass, y=worldbankfinal, by = c("Country.Code","Year"), all = 
 merged2<-merged1 %>%
   select(Country.Code,Country.Name.x,Country.Name.y,Current.Dollar.Amount,Year,GDP_per_cap)
 
-min(merged2$Year)
-max(merged2$Year)
-countries<-unique(merged2$Country.Name.x)
-unique(merged2$year)
-summary(countries)
 
-#create a new data frame wher #current_dollar_value is summated into a single value
-#each row will be a single country, with a single year, and a unique dollar value.
-#then, create a column for "Polity" score, to be populated by reference to the polity dataset.
+#create a sample, size 66
+#subset countries into three groups based on polity score
+democracies<-subset(politydata, polity >= 7)
+anocracies<-subset(politydata, polity > -7 & polity < 7)
+autocracies<-subset(politydata, polity <= -7)
 
-#use politydata as a relational table to fill in polity values in merged data set
+#pick a sample list from each group. 
+demsample<-sample(unique(democracies$country), 22)
+anosample<-sample(unique(anocracies$country), 22)
+autsample<-sample(unique(autocracies$country), 22)
 
-#create a new data.frame
-merged3<-data.frame(
-  "Country" = c(countries),
-  "Country Code" = c(countrycodes),
-  "Year" = c(years),
-  "Tot_spend" = () #total military spending. this one is probably going to require a loop.
-  "Polity" = 
+# combine the samples
+fullsample<- c(demsample,anosample,autsample)
+print(fullsample)
+
+#save as a spreadsheet with polity data to be entered in
+politysample<-data.frame(
+  Country = c(fullsample),
+  Polity = NA
 )
-
-#loop for populationg polity scores
-merged3$polity<-
-  for x in merged3
-  polity == politydata$polity
-  where
-  merged3$country == politydata$Country.Code
-  AND
-  politydata$byear > merged3$year >= politydata$eyear
-  
-  OR
-  
-  for x in merged3
-  if polity$country[i] == merged3$country[j]
-  AND polity$byear[j] > merged3$year > polity$eyear[j]
-  THEN merged3$polity = politydata$polity
-  ELSE
-  
-
-
-
-#Select sample size. 
-#to produce a balanced design, create a "regime type) variable denoting each country
-#as either dem or non-dem (1,0), based of Polity2 score. (dem => 7)
-#Then, divide the sample size by two, and select that many countries from each category
-#using the "seed" function.
-
-set.seed(12)
-countriessample<-sample(countries,66)
-View(countriessample)
-print(countriessample)
-#merge Polity, formal aliances, and Wealth into this data set as well (will need done before step above)
+write.csv(politysample,"C:/Users/Kenne/Documents/STAT 461/Stat461project/politysetbalanced.csv",
+          row.names = FALSE)
 ```
 
 ###Introduction
