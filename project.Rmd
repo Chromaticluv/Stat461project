@@ -11,28 +11,44 @@ date: "2023-03-29"
 output: html_document
 ---
 
-```{r Loading data - libraries - cleaning data, echo=FALSE}
+```{r Loading data - libraries - cleaning data, echo=FALSE,include=FALSE}
 #Load libraries & Import Data
-library("dplyr")
-library("tidyr")
-rm(list = ls())
-#set constraints to zero
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+## Load packages
+packages <- c("tidyverse", "knitr", "kableExtra",
+"parameters", "hasseDiagram", "DescTools",
+"emmeans")
+lapply(packages, library, character.only = TRUE)
+
+## Set options and constraint
+options(knitr.kable.NA = "")
+options(contrasts = c("contr.sum", "contr.poly"))
+## Load useful tools
+source("https://raw.github.com/neilhatfield/STAT461/master/rScripts/ANOVATools.R")
 
 forass<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/foreignassistance.csv") #Foreign Assistence data set
-politydata<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/polity.csv") #POLITY V DATA SET
+politydata<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/p5v2018%20(1).csv") #POLITY V DATA SET
 worldbankraw<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/WorldBankData.csv")
 
 #NOTE: the original Foreign Assistance data set was over 3gb in size. For convenience, it was cleaned in a seperate file, then the final
 #set was saved and imported here. A full data set can be found at: https://data.usaid.gov/resource/azij-hu6e.json
 
-##Cleaning polity data:
-politydata<-read.csv("https://raw.githubusercontent.com/Chromaticluv/Stat461project/main/polity.csv")
-politydata<-politydata %>% 
-  select(Country.Code,country,polity,byear,eyear) %>% #select only relevant rows
-  filter(between(eyear,2000,9999)) #select only rows between end-year 2000 and present.
+#clean forass
+forass<-forass %>% 
+  dplyr::select(Country.Code,Country.Name,Fiscal.Year,Current.Dollar.Amount) %>%
+  filter(Fiscal.Year == 2010) %>%
+  group_by(Country.Code) %>%
+  summarise(Dollar_Sum = sum(Current.Dollar.Amount),
+            .groups = NULL)
+  
 
-politydata$eyear[politydata$eyear == 9999] <- 2020 #turn "present" values to 2020
-politydata$polity[politydata$polity < -10] <- NA #turn transition years into NA
+##Cleaning polity data:
+politydata<-politydata %>% 
+  filter(year==2010) %>%
+  rename("Country.Code" = "code")
+
 
 ##clean worldbank
 
@@ -42,61 +58,46 @@ worldbankclean<-worldbankraw %>%
 worldbankclean<-gather(worldbankclean, Year, GDP_per_cap, X2000..YR2000.:X2015..YR2015.) #Convert wide data to long
 
 worldbankfinal<-worldbankclean %>%
-  select(Country.Code,Country.Name,Year,GDP_per_cap) #select relevant columns
+  dplyr::select(Country.Code,Country.Name,Year,GDP_per_cap)#select relevant columns
 
 worldbankfinal$GDP_per_cap[worldbankfinal$GDP_per_cap == ".."] <- NA #change ".." to NA
 
-#Recoding all the weird year formats to something normal. (and numeric)
-worldbankfinal$Year[worldbankfinal$Year =="X2000..YR2000."] <- 2000
-worldbankfinal$Year[worldbankfinal$Year =="X2001..YR2001."] <- 2001
-worldbankfinal$Year[worldbankfinal$Year =="X2002..YR2002."] <- 2002
-worldbankfinal$Year[worldbankfinal$Year =="X2003..YR2003."] <- 2003
-worldbankfinal$Year[worldbankfinal$Year =="X2004..YR2004."] <- 2004
-worldbankfinal$Year[worldbankfinal$Year =="X2005..YR2005."] <- 2005
-worldbankfinal$Year[worldbankfinal$Year =="X2006..YR2006."] <- 2006
-worldbankfinal$Year[worldbankfinal$Year =="X2007..YR2007."] <- 2007
-worldbankfinal$Year[worldbankfinal$Year =="X2008..YR2008."] <- 2008
-worldbankfinal$Year[worldbankfinal$Year =="X2009..YR2009."] <- 2009
+
 worldbankfinal$Year[worldbankfinal$Year =="X2010..YR2010."] <- 2010
-worldbankfinal$Year[worldbankfinal$Year =="X2011..YR2011."] <- 2011
-worldbankfinal$Year[worldbankfinal$Year =="X2012..YR2012."] <- 2012
-worldbankfinal$Year[worldbankfinal$Year =="X2013..YR2013."] <- 2013
-worldbankfinal$Year[worldbankfinal$Year =="X2014..YR2014."] <- 2014
-worldbankfinal$Year[worldbankfinal$Year =="X2015..YR2015."] <- 2015
+
+worldbankfinal<-worldbankfinal %>%
+  filter(Year == 2010)
 
 #merge forass and worldbank on country code and year.
 
-forass<-forass %>%
-  rename(Year = Fiscal.Year)
 
-merged1<-merge(x=forass, y=worldbankfinal, by = c("Country.Code","Year"), all = FALSE)
+#merge the datasets
+merged1<-merge(x=forass, y=worldbankfinal, by = c("Country.Code"), all = FALSE)
+merged2<-merge(x=merged1,y=politydata, by = c("Country.Code"), all = FALSE)
+merged2<- merged2 %>% #drop unnecessary columns, rename columns for efficiency
+  dplyr::select(Country.Code,Country.Name,Dollar_Sum,GDP_per_cap,polity2) %>%
+  rename("Code" = "Country.Code",
+         "Name" = "Country.Name",
+         "GDPPC" = "GDP_per_cap")
+merged2<-merged2 %>%
+  drop_na()
+ #drop cases with NA values
 
-merged2<-merged1 %>%
-  select(Country.Code,Country.Name.x,Country.Name.y,Current.Dollar.Amount,Year,GDP_per_cap)
+#create a dichotomous democracy/nondemocracy variable
+
+quantile(merged2$polity2, probs= c(0.333,0.6667), na.rm = TRUE)
+
+merged2$regimetype <- cut(merged2$polity2,
+                       breaks=c(-11,3,7,11),
+                       labels=c(0,1,2))
+
+merged2$regimetype<-as.factor(merged2$regimetype) #make democracy a factor
 
 
-#create a sample, size 66
-#subset countries into three groups based on polity score
-democracies<-subset(politydata, polity >= 7)
-anocracies<-subset(politydata, polity > -7 & polity < 7)
-autocracies<-subset(politydata, polity <= -7)
+#divide Dollar_sum by 1000 to make it easier to work with
+merged2$Dollar_Sum <- merged2$Dollar_Sum / 1000
 
-#pick a sample list from each group. 
-demsample<-sample(unique(democracies$country), 22)
-anosample<-sample(unique(anocracies$country), 22)
-autsample<-sample(unique(autocracies$country), 22)
-
-# combine the samples
-fullsample<- c(demsample,anosample,autsample)
-print(fullsample)
-
-#save as a spreadsheet with polity data to be entered in
-politysample<-data.frame(
-  Country = c(fullsample),
-  Polity = NA
-)
-write.csv(politysample,"C:/Users/Kenne/Documents/STAT 461/Stat461project/politysetbalanced.csv",
-          row.names = FALSE)
+count(merged2$regimetype)
 ```
 
 ###Introduction
@@ -107,19 +108,12 @@ write.csv(politysample,"C:/Users/Kenne/Documents/STAT 461/Stat461project/politys
 
 ```{r Summary data, distributions, assumptions, echo=FALSE}
 
-plot(merged2$GDP_per_cap, merged2$Current.Dollar.Amount)
 #produce summary statistics for DV
+summary(merged2$Dollar_Sum)
 
 #produce a histogram of the DV (data$current_amount)
 
-###assess ANOVA assumpetions
-#Gaussian distribution via QQ plot
 
-#Homoscedacity via strip plot
-
-#Independence via D-W statistic
-
-#spherecity 
 
 ```
 
@@ -127,8 +121,38 @@ plot(merged2$GDP_per_cap, merged2$Current.Dollar.Amount)
 
 ```{r, echo=FALSE}
 ##Hasse Diagram
+modelLabels <- c("1 Grand Mean 1", "3 Regime type  2", "52 Country 49")
+modelMatrix <- matrix(
+  data = c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, TRUE, FALSE),
+  nrow = 3,
+  ncol = 3,
+  byrow = FALSE
+)
+hasseDiagram::hasse(
+ data = modelMatrix,
+ labels = modelLabels
+)
 
-#conduct ANOVA test(s)
+###fit a KW model
+regimeOmni <- kruskal.test(
+formula = regimetype ~ Dollar_Sum,
+data = merged2,
+na.action = "na.omit"
+)
+
+regimeOmni$statistic
+regimeOmni$p.value
+
+#effect size
+# Demo Code for measuring practical significance for Kruskal-Wallis ----
+library(rcompanion)
+regimeEffectSize <- rcompanion::epsilonSquared(
+x = merged2$Dollar_Sum,
+g = merged2$regimetype,
+digits = 4
+)
+## Display results
+regimeEffectSize
 
 ``` 
 
